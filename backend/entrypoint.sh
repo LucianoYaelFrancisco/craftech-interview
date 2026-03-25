@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if [ "$DATABASE" = "postgres" ]
+then
+    echo "Waiting for postgres..."
+
+    while ! nc -z $SQL_HOST $SQL_PORT; do
+      sleep 0.1
+    done
+
+    echo "PostgreSQL started"
+fi
+
+# Uncomment below to flush db e.g. after running tests
+# Just make sure you really mean it 
+# python manage.py flush --no-input
+
+# Ejecutar migraciones (sin makemigrations porque la app api_user es responsable)
+python manage.py migrate
+python manage.py loaddata api/fixtures/initial_data.json
+# python manage.py collectstatic --noinput
+python manage.py runserver 0.0.0.0:8000
+
+exec "$@"

@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: interview-app
+  labels:
+    app: backend
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1         
+      maxUnavailable: 0  
+  
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: "539562401403.dkr.ecr.us-east-1.amazonaws.com/interview-backend:latest"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DEBUG
+        - name: SQL_ENGINE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: SQL_ENGINE
+        - name: SQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: SQL_DATABASE
+        - name: SQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: SQL_PORT
+        - name: DJANGO_ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DJANGO_ALLOWED_HOSTS
+        - name: SQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: SQL_USER
+        - name: SQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: SQL_PASSWORD
+        - name: SQL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: SQL_HOST
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: SECRET_KEY
+         resources:
+          requests:
+            cpu: "100m"         
+            memory: "128Mi"     
+          limits:
+            cpu: "250m"          
+            memory: "512Mi"     
+
+        volumeMounts:
+        - name: static
+          mountPath: /usr/src/app/staticfiles
+        - name: media
+          mountPath: /usr/src/app/media
+      
+      volumes:
+      - name: static
+        emptyDir: {}
+      - name: media
+        emptyDir: {}
+      
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

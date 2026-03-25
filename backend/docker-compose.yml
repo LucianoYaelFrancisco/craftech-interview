@@ -1,0 +1,153 @@
+# DOCKER-COMPOSE: Orquestación de contenedores
+# Este archivo define cómo ejecutar múltiples contenedores como una aplicación completa
+# Fuente: https://docs.docker.com/compose/
+
+# version: versión de sintaxis de docker-compose (3.8 es reciente y soporta todas las características)
+version: '3.8'
+
+# services: define cada contenedor que será ejecutado
+services:
+  # ============================================================================
+  # SERVICIO 1: DATABASE (PostgreSQL)
+  # ============================================================================
+  db:
+    # container_name: nombre del contenedor cuando se ejecuta
+    # Permite referencias fáciles dentro de docker-compose (ej: SQL_HOST=db)
+    container_name: database
+    
+    # image: imagen Docker a usar (versión 12.0-alpine es lightweight)
+    # Alpine Linux es muy pequeño (~50MB vs 300MB en versión full)
+    # Fuente: https://hub.docker.com/_/postgres
+    image: postgres:12.0-alpine
+    
+    # env_file: carga variables de ambiente desde archivo .env.postgres
+    # Permite guardar credenciales de forma segura (no en código)
+    # Archivo debe contener: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+    env_file: ./.env.postgres
+    
+    # volumes: almacenamiento persistente (los datos se mantienen aunque el contenedor se elimine)
+    # postgres_data: volumen nombrado definido al final del archivo
+    # /var/lib/postgresql/data: ruta dentro del contenedor donde PostgreSQL guarda datos
+    # Sin este volumen, cada contenedor tendría BD vacía
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    # ports: mapea puertos entre host y contenedor
+    # "5432:5432" = puerto 5432 del host -> puerto 5432 del contenedor
+    # Permite acceder a PostgreSQL desde la máquina host
+    ports:
+      - "5432:5432"
+    
+    # networks: conecta este contenedor a la red "app-network"
+    # Permite comunicación entre contenedores (ej: backend puede conectar a "db")
+    networks:
+      - app-network
+
+  # ============================================================================
+  # SERVICIO 2: BACKEND DJANGO
+  # ============================================================================
+  backend:
+    container_name: backend
+    
+    # build: construye imagen desde Dockerfile en lugar de usar imagen predefinida
+    # context: ruta donde están los archivos (./backend = carpeta backend del proyecto)
+    # dockerfile: nombre del archivo Dockerfile a usar
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    
+    # command: sobrescribe el CMD del Dockerfile
+    # sh -c: ejecuta múltiples comandos en shell
+    # python manage.py migrate: aplica cambios de BD (migraciones)
+    # python manage.py runserver: inicia servidor Django en puerto 8000
+    # && = ejecuta siguiente comando solo si el anterior tuvo éxito
+    # Fuente: https://docs.djangoproject.com/en/4.0/ref/django-admin/#migrate
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    
+    # environment: variables de ambiente dentro del contenedor
+    # DEBUG: 0 = desactiva modo debug (importante en producción)
+    # SQL_*: credenciales y ubicación de BD PostgreSQL
+    # SQL_HOST: "db" es el nombre del contenedor (resuelto por la red)
+    # SQL_PORT: 5432 es el puerto predeterminado de PostgreSQL
+    environment:
+      DEBUG: 0
+      SQL_ENGINE: django.db.backends.postgresql
+      SQL_DATABASE: core
+      SQL_USER: user
+      SQL_PASSWORD: password
+      SQL_HOST: db
+      SQL_PORT: 5432
+    
+    # volumes: mapea carpetas para desarrollo (cambios se reflejan sin rebuild)
+    # ./backend:/app = carpeta local backend se refleja dentro del contenedor en /app
+    # Sin esto, cada cambio requeriría rebuild de la imagen
+    volumes:
+      - ./backend:/app
+    
+    # ports: mapea puerto para acceder a API desde host
+    # localhost:8000 en el host = puerto 8000 del contenedor
+    ports:
+      - "8000:8000"
+    
+    # depends_on: especifica que este servicio depende de "db"
+    # Docker iniciará "db" antes que "backend"
+    # Fuente: https://docs.docker.com/compose/compose-file/compose-file-v3/#depends_on
+    depends_on:
+      - db
+    
+    networks:
+      - app-network
+
+  # ============================================================================
+  # SERVICIO 3: FRONTEND REACT
+  # ============================================================================
+  frontend:
+    container_name: frontend
+    
+    # Construye imagen desde Dockerfile en carpeta frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    
+    # Puerto donde escucha la aplicación React (3000 es estándar)
+    ports:
+      - "3000:3000"
+    
+    # Espera a que backend esté listo antes de iniciar
+    depends_on:
+      - backend
+    
+    networks:
+      - app-network
+
+# ============================================================================
+# VOLUMES: Almacenamiento persistente
+# ============================================================================
+# Estas secciones definen volúmenes nombrados que se usan en los servicios
+volumes:
+  # postgres_data: almacena datos de la BD PostgreSQL
+  # Los datos persisten aunque se elimine el contenedor
+  postgres_data:
+  
+  # static: para archivos estáticos compilados (CSS, JS, imágenes)
+  # Puede ser usado por backend y servido por nginx/web server
+  static:
+  
+  # media: para archivos subidos por usuarios
+  # Debe ser persistente para no perder datos entre despliegues
+  media:
+
+# ============================================================================
+# NETWORKS: Redes personalizadas
+# ============================================================================
+# Define una red bridge que conecta todos los contenedores
+# Permite que los contenedores se comuniquen entre sí por nombre
+# Ej: backend puede llegar a "db" sin conocer su IP
+networks:
+  # app-network: nombre de la red
+  app-network:
+    # driver: bridge = cada contenedor tiene su IP, conectados a un switch virtual
+    # Fuente: https://docs.docker.com/network/bridge/
+    driver: bridge

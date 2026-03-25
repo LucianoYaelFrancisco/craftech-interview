@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: interview-app
+data:
+  # Variables de configuración (no sensibles)
+  DEBUG: "0"
+  SQL_ENGINE: "django.db.backends.postgresql"
+  SQL_DATABASE: "core"
+  SQL_PORT: "5432"
+  DJANGO_ALLOWED_HOSTS: "*"
+  # URL del backend para frontend
+  REACT_APP_API_URL: "http://backend-service.interview-app.svc.cluster.local:8000"
