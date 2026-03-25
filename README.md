@@ -32,6 +32,8 @@ Se utilizan VPC Endpoints para integraciones internas, como el acceso a ECR y a 
 
 # Prueba 2: Despliegue de Aplicación
 
+URL: http://k8s-intervie-mainingr-71dc251d35-1079019205.us-east-1.elb.amazonaws.com/auth/signin
+
 Aplicación **full-stack** con:
 - **Frontend**: React.js
 - **Backend**: Django REST
