@@ -42,7 +42,7 @@ Aplicación **full-stack** con:
 Desplegable localmente con Docker Compose y en AWS con Terraform + Kubernetes.
 
 ## Instalaciones Previas
-: Acceso seguro a servicios AWS sin internet público
+
 ### Instalar Terraform
 ```bash
 # Descargar desde: https://www.terraform.io/downloads
@@ -190,7 +190,7 @@ Accede a: `http://localhost:8080`
 - GitHub Actions
 - Docker / Docker Hub
 - Nginx
-- ECR / EKS (opcionales)
+- ECR / EKS (opcionales, en este caso por simplicidad no se aplican... se despliega directo en local con docker compose pull)
 
 ---
 
