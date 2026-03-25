@@ -17,7 +17,7 @@ Este proyecto contiene las tres pruebas técnicas solicitadas por craftech.
 
 # Prueba 1: Diagrama de Red
 # Arquitectura Cloud-Native en AWS
-![Arquitectura](docs/screenshots/arch.jpg)
+![Arquitectura](docs/screenshots/arch.png)
 
 La arquitectura está pensada como una solución cloud-native en AWS que separa dos flujos principales: el tráfico web de usuarios y el procesamiento de datos IoT, manteniendo ambos desacoplados pero dentro de una misma VPC para simplificar la conectividad interna.
 
